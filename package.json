@@ -6,10 +6,14 @@
     "serve": "vite preview"
   },
   "dependencies": {
+    "@state-adapt/core": "^2.0.3",
+    "@state-adapt/react": "^2.0.3",
+    "@state-adapt/rxjs": "^2.0.3",
     "jotai": "^1.5.3",
     "react": "^17.0.0",
     "react-bind-keys": "^0.0.8",
     "react-dom": "^17.0.0",
+    "rxjs": "^7.8.1",
     "spelling": "^2.0.2"
   },
   "devDependencies": {
