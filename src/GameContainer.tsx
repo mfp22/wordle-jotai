@@ -2,8 +2,8 @@ import React, { useEffect, useRef } from "react";
 import Keyboard from "./Keyboard";
 import Row from "./Row";
 import { useAtomValue, useSetAtom } from "jotai";
-import { currentRowAtom, numberOfRowsAtom } from "./store";
-import { LOWER_ALPHABET, UPPER_ALPHABET } from "./constants";
+import { currentRowAtom } from "./store";
+import { ALLOWED_ATTEMPTS, LOWER_ALPHABET, UPPER_ALPHABET } from "./constants";
 import BindKeys from "react-bind-keys";
 
 export default function GameContainer() {
@@ -39,7 +39,7 @@ export default function GameContainer() {
   return (
     <BindKeys keyMap={keyMap} keyHandlers={keyHandlers}>
       <div ref={containerRef} tabIndex={-1} style={{ outline: "none" }}>
-        {[...new Array(numberOfRows)].map((_, index) => {
+        {[...new Array(ALLOWED_ATTEMPTS)].map((_, index) => {
           return <Row index={index} key={index} />;
         })}
         <Keyboard deleteLetter={deleteLetter} setLetter={setLetter} />

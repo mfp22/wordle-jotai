@@ -16,12 +16,9 @@ function getNumberOfDays(start: Date, end: Date) {
 }
 const startDate = new Date("2/4/2022");
 const currentDate = new Date();
-export const wordAtom = atom(WORDS[getNumberOfDays(startDate, currentDate)]);
-export const lettersUsed = [];
+export const word = WORDS[getNumberOfDays(startDate, currentDate)];
 
 export const currentRowIndexAtom = atom(0);
-
-export const lettersUsedAtom = atom({});
 
 const getValidationResult = (actualWord: string, testWord: string): ValidationResult[] => {
   if (WORDS.indexOf(testWord) < 0) {
@@ -47,7 +44,7 @@ const getValidationResult = (actualWord: string, testWord: string): ValidationRe
   });
 };
 
-export function newCreateRowAtom() {
+function newCreateRowAtom() {
   const currentWordAtom = atom("");
   const validationResultAtom = atom<ValidationResult[]>([]);
   const setLetterAtom = atom(null, (_, set, letter: string) => {
@@ -64,7 +61,6 @@ export function newCreateRowAtom() {
   });
 
   const performWordValidationAtom = atom(null, (get, set) => {
-    const word = get(wordAtom);
     const currentWord = get(currentWordAtom);
     const validationResult = getValidationResult(word, currentWord);
 
@@ -85,11 +81,6 @@ export function newCreateRowAtom() {
 }
 
 export const rowAtoms = atom([...new Array(ALLOWED_ATTEMPTS)].map(() => newCreateRowAtom()));
-
-export const numberOfRowsAtom = atom(get => {
-  const rows = get(rowAtoms);
-  return rows.length;
-});
 
 export const getAtomForRowIndex = (rowIndex: number) =>
   atom(get => {
