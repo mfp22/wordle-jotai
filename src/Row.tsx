@@ -1,18 +1,12 @@
-import { useAtomValue, useSetAtom } from "jotai";
-import React, { useMemo } from "react";
+import React from "react";
 import { ALLOWED_LETTERS } from "./constants";
 import LetterSlot from "./LetterSlot";
-import { getAtomForRowIndex } from "./store";
+import { erase$, newLetter$, rowStores, validationResultStores } from "./store";
+import { useStore } from "@state-adapt/react";
 
 function Row({ index }: { index: number }) {
-  const { currentWordAtom, setLetterAtom, deleteLetterAtom, validationResultAtom } = useAtomValue(
-    useMemo(() => getAtomForRowIndex(index), [index])
-  );
-
-  const deleteLetter = useSetAtom(deleteLetterAtom);
-  const setLetter = useSetAtom(setLetterAtom);
-  const currentWord = useAtomValue(currentWordAtom);
-  const validationResult = useAtomValue(validationResultAtom);
+  const currentWord = useStore(rowStores[index]).state;
+  const validationResult = useStore(validationResultStores[index]).validationResult;
 
   return (
     <div style={{ display: "flex", outline: "none" }}>
@@ -22,8 +16,8 @@ function Row({ index }: { index: number }) {
             isActive={true}
             validationResult={validationResult[letterSlotIndex]}
             currentLetter={currentWord[letterSlotIndex] || ""}
-            onPressLetter={setLetter}
-            onDeleteLetter={deleteLetter}
+            onPressLetter={(letter: string) => newLetter$.next({ letter, row: index })}
+            onDeleteLetter={() => erase$.next(index)}
             key={letterSlotIndex}
           />
         );

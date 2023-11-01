@@ -1,23 +1,22 @@
 import React, { useEffect, useRef } from "react";
 import Keyboard from "./Keyboard";
 import Row from "./Row";
-import { useAtomValue, useSetAtom } from "jotai";
-import { currentRowAtom } from "./store";
+import { currentRowIndexStore, erase$, newLetter$, rowStores, submit$ } from "./store";
 import { ALLOWED_ATTEMPTS, LOWER_ALPHABET, UPPER_ALPHABET } from "./constants";
 import BindKeys from "react-bind-keys";
+import { useStore } from "@state-adapt/react";
 
 export default function GameContainer() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const numberOfRows = useAtomValue(numberOfRowsAtom);
-  const { performWordValidationAtom, setLetterAtom, deleteLetterAtom } =
-    useAtomValue(currentRowAtom);
 
-  const performWordValidation = useSetAtom(performWordValidationAtom);
-  const deleteLetter = useSetAtom(deleteLetterAtom);
-  const setLetter = useSetAtom(setLetterAtom);
+  const currentRowIndex = useStore(currentRowIndexStore).state;
+  const currentRow = useStore(rowStores[currentRowIndex]).state;
+
+  const deleteLetter = () => erase$.next(currentRowIndex);
+  const setLetter = (letter: string) => newLetter$.next({ letter, row: currentRowIndex });
 
   const keyHandlers = {
-    SUBMIT: performWordValidation,
+    SUBMIT: () => submit$.next(currentRow),
     DELETE_LETTER: deleteLetter,
     SET_LETTER: (e: React.KeyboardEvent) => {
       setLetter(e.key);

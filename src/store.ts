@@ -1,6 +1,9 @@
 import { WORDS } from "./wordlist";
-import { atom } from "jotai";
 import { ALLOWED_ATTEMPTS, ALLOWED_LETTERS, ValidationResult } from "./constants";
+import { adapt } from "./state-adapt";
+import { Source, joinStores, toSource } from "@state-adapt/rxjs";
+import { Subject, filter, tap } from "rxjs";
+import { createAdapter } from "@state-adapt/core";
 
 function getNumberOfDays(start: Date, end: Date) {
   // One day in milliseconds
@@ -18,12 +21,48 @@ const startDate = new Date("2/4/2022");
 const currentDate = new Date();
 export const word = WORDS[getNumberOfDays(startDate, currentDate)];
 
-export const currentRowIndexAtom = atom(0);
+export const erase$ = new Source<number>("erase$");
+export const newLetter$ = new Source<{ letter: string; row: number }>("newLetter$");
+export const submit$ = new Subject<string>();
+
+export const currentRowIndexStore = adapt(0, {
+  adapter: {
+    increment: state => Math.min(ALLOWED_ATTEMPTS - 1, state + 1),
+  },
+  sources: {
+    increment: submit$.pipe(
+      tap(w => console.log("submit$", w, word)),
+      filter(row => WORDS.indexOf(row) !== -1),
+      toSource("validSumission$")
+    ),
+  },
+  path: "currentRowIndex",
+});
+
+const rowAdapter = createAdapter<string>()({
+  addLetter: (state, { letter }) => (state.length >= ALLOWED_LETTERS ? state : `${state}${letter}`),
+  deleteLetter: state => state.slice(0, state.length - 1),
+});
+export const rowStores = new Array(ALLOWED_ATTEMPTS).fill("").map((el, i) =>
+  adapt("", {
+    adapter: rowAdapter,
+    sources: {
+      addLetter: newLetter$.pipe(filter(({ payload }) => payload.row === i)),
+      deleteLetter: erase$.pipe(filter(({ payload }) => payload === i)),
+    },
+    path: `row.${i}`,
+  })
+);
+export const validationResultStores = rowStores.map((store, i) =>
+  joinStores({
+    currentRowIndex: currentRowIndexStore,
+    row: store,
+  })({
+    validationResult: s => (s.currentRowIndex > i ? getValidationResult(word, s.row) : []),
+  })()
+);
 
 const getValidationResult = (actualWord: string, testWord: string): ValidationResult[] => {
-  if (WORDS.indexOf(testWord) < 0) {
-    return [];
-  }
   const claimed = new Array(actualWord.length);
   const testLetters = testWord.split("");
   const actualLetters = actualWord.split("");
@@ -43,54 +82,3 @@ const getValidationResult = (actualWord: string, testWord: string): ValidationRe
     return ValidationResult.WrongLetter;
   });
 };
-
-function newCreateRowAtom() {
-  const currentWordAtom = atom("");
-  const validationResultAtom = atom<ValidationResult[]>([]);
-  const setLetterAtom = atom(null, (_, set, letter: string) => {
-    set(currentWordAtom, currentWord => {
-      if (currentWord.length >= ALLOWED_LETTERS) {
-        return currentWord;
-      }
-      return `${currentWord}${letter}`;
-    });
-  });
-
-  const deleteLetterAtom = atom(null, (_, set) => {
-    set(currentWordAtom, currentWord => currentWord.slice(0, currentWord.length - 1));
-  });
-
-  const performWordValidationAtom = atom(null, (get, set) => {
-    const currentWord = get(currentWordAtom);
-    const validationResult = getValidationResult(word, currentWord);
-
-    set(validationResultAtom, validationResult);
-
-    if (validationResult.length > 0) {
-      set(currentRowIndexAtom, index => Math.min(ALLOWED_ATTEMPTS - 1, index + 1));
-    }
-  });
-
-  return {
-    performWordValidationAtom,
-    validationResultAtom,
-    currentWordAtom,
-    setLetterAtom,
-    deleteLetterAtom,
-  };
-}
-
-export const rowAtoms = atom([...new Array(ALLOWED_ATTEMPTS)].map(() => newCreateRowAtom()));
-
-export const getAtomForRowIndex = (rowIndex: number) =>
-  atom(get => {
-    const rows = get(rowAtoms);
-    return rows[rowIndex];
-  });
-
-export const currentRowAtom = atom(get => {
-  const currentRowIndex = get(currentRowIndexAtom);
-  const rows = get(rowAtoms);
-
-  return rows[currentRowIndex];
-});
